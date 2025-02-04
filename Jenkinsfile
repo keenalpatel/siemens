@@ -10,6 +10,11 @@ pipeline {
                 sh 'terraform init'
             }
         }
+        stage("Package Lambda") {
+            steps {
+                sh 'zip -r lambda.zip lambda_function.py'
+            }
+        }
         stage("TF Validate") {
             steps {
                 sh 'terraform validate'
@@ -23,11 +28,6 @@ pipeline {
         stage("TF Apply") {
             steps {
                 sh 'terraform apply -auto-approve'
-            }
-        }
-        stage("Package Lambda") {
-            steps {
-                sh 'zip -r lambda.zip lambda_function.py'
             }
         }
         stage("Upload Lambda") {
