@@ -34,7 +34,7 @@ pipeline {
             steps {
                 sh '''
                 aws lambda update-function-code \
-                --function-name devops_lambda \
+                --function-name devops-exam-lambda \
                 --zip-file fileb://lambda.zip \
                 --region $AWS_REGION
                 '''
@@ -43,12 +43,17 @@ pipeline {
         stage("Invoke Lambda") {
             steps {
                 script {
-                    def lambdaResponse = sh(script: '''
-                    aws lambda invoke --function-name devops_lambda \
-                    --payload '{"subnet_id": "subnet-xxxxx"}' \
-                    --log-type Tail output.json | jq -r '.LogResult' | base64 --decode
-                    ''', returnStdout: true).trim()
-                    
+                    // Fetch subnet ID from Terraform output
+                    def subnetId = sh(script: 'terraform output -raw subnet_id', returnStdout: true).trim()
+
+                    // Invoke Lambda with dynamic subnet ID
+                    def lambdaResponse = sh(script: """
+                        aws lambda invoke --function-name devops-exam-lambda \
+                        --payload '{"subnet_id": "${subnetId}"}' \
+                        --log-type Tail output.json | jq -r '.LogResult' | base64 --decode
+                    """, returnStdout: true).trim()
+
+                    // Log the Lambda response
                     echo "Lambda Response: ${lambdaResponse}"
                 }
             }

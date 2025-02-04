@@ -52,8 +52,8 @@ resource "aws_lambda_function" "lambda" {
   handler       = "lambda_function.lambda_handler"
   runtime       = "python3.8"
 
-  filename         = "lambda_function.zip"
-  source_code_hash = filebase64sha256("lambda_function.zip")
+  filename         = "lambda.zip"
+  source_code_hash = filebase64sha256("lambda.zip")
 
   vpc_config {
     subnet_ids         = [aws_subnet.private_subnet.id]
@@ -67,4 +67,9 @@ resource "aws_lambda_function" "lambda" {
       EMAIL     = "keenalpatel143@gmail.com" # Replace with your email
     }
   }
+}
+
+# Output the subnet ID for use in the Jenkins pipeline
+output "subnet_id" {
+  value = aws_subnet.private_subnet.id
 }

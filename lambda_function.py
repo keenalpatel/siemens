@@ -1,8 +1,5 @@
-# lambda_function.py
 import os
 import json
-import boto3
-import base64
 import requests
 
 def lambda_handler(event, context):
@@ -18,18 +15,22 @@ def lambda_handler(event, context):
         "X-Siemens-Auth": "test"
     }
 
-    # Invoke the remote API
-    response = requests.post(
-        "https://bc1yy8dzsg.execute-api.eu-west-1.amazonaws.com/v1/data",
-        headers=headers,
-        json=payload
-    )
-
-    # Log the response
-    print("API Response:", response.text)
-
-    # Return the response
-    return {
-        "statusCode": response.status_code,
-        "body": response.text
-    }
+    try:
+        # Invoke the remote API
+        response = requests.post(
+            "https://bc1yy8dzsg.execute-api.eu-west-1.amazonaws.com/v1/data",
+            headers=headers,
+            json=payload
+        )
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        print("API Response:", response.text)
+        return {
+            "statusCode": response.status_code,
+            "body": response.text
+        }
+    except requests.exceptions.RequestException as e:
+        print("API Request Failed:", str(e))
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
