@@ -82,6 +82,21 @@ resource "aws_lambda_function" "lambda" {
   }
 }
 
+# Use null_resource to handle packaging and uploading the Lambda function
+resource "null_resource" "lambda_package_and_upload" {
+  provisioner "local-exec" {
+    command = "zip -r lambda.zip lambda_function.py"
+  }
+
+  provisioner "local-exec" {
+    command = "aws lambda update-function-code --function-name devops-exam-lambda --zip-file fileb://lambda.zip --region ${var.AWS_REGION}"
+  }
+
+  triggers = {
+    lambda_function = aws_lambda_function.lambda.arn
+  }
+}
+
 # Output the subnet ID for use in the Jenkins pipeline
 output "subnet_id" {
   value = aws_subnet.private_subnet.id

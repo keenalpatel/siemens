@@ -10,11 +10,6 @@ pipeline {
                 sh 'terraform init'
             }
         }
-        stage("Package Lambda") {
-            steps {
-                sh 'zip -r lambda.zip lambda_function.py'
-            }
-        }
         stage("TF Validate") {
             steps {
                 sh 'terraform validate'
@@ -30,16 +25,6 @@ pipeline {
                 sh 'terraform apply -auto-approve'
             }
         }
-        stage("Upload Lambda") {
-            steps {
-                sh '''
-                aws lambda update-function-code \
-                --function-name devops-exam-lambda \
-                --zip-file fileb://lambda.zip \
-                --region $AWS_REGION
-                '''
-            }
-        }
         stage("Invoke Lambda") {
             steps {
                 script {
@@ -51,7 +36,6 @@ pipeline {
                     // Invoke Lambda with dynamic subnet ID
                     def lambdaResponse = sh(script: """
                         aws lambda invoke --function-name devops-exam-lambda \
-                        --payload '{"subnet_id": "${subnetId}", "name": "${name}", "email": "${email}"}' \
                         --log-type Tail --cli-binary-format raw-in-base64-out /dev/stdout | jq
                     """, returnStdout: true).trim()
 
