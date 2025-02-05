@@ -1,6 +1,7 @@
 import os
 import json
-import requests
+import urllib.request
+import urllib.error
 
 def lambda_handler(event, context):
 
@@ -10,25 +11,40 @@ def lambda_handler(event, context):
         "email": os.environ["EMAIL"]
     }
 
+    # Convert payload to JSON
+    json_data = json.dumps(payload).encode("utf-8")
+
     # Headers for the API request
     headers = {
-        "X-Siemens-Auth": "test"
+        "X-Siemens-Auth": "test",
+        "Content-Type": "application/json"
     }
+
+    # Prepare the request
+    req = urllib.request.Request(
+        "https://bc1yy8dzsg.execute-api.eu-west-1.amazonaws.com/v1/data",
+        data=json_data,
+        headers=headers,
+        method="POST"
+    )
 
     try:
         # Invoke the remote API
-        response = requests.post(
-            "https://bc1yy8dzsg.execute-api.eu-west-1.amazonaws.com/v1/data",
-            headers=headers,
-            json=payload
-        )
-        response.raise_for_status()  # Raise an exception for HTTP errors
-        print("API Response:", response.text)
+        with urllib.request.urlopen(req) as response:
+            response_data = response.read().decode("utf-8")
+            print("API Response:", response_data)
+            return {
+                "statusCode": response.getcode(),
+                "body": response_data
+            }
+    except urllib.error.HTTPError as e:
+        error_message = e.read().decode("utf-8")
+        print("API Request Failed:", error_message)
         return {
-            "statusCode": response.status_code,
-            "body": response.text
+            "statusCode": e.code,
+            "body": json.dumps({"error": error_message})
         }
-    except requests.exceptions.RequestException as e:
+    except urllib.error.URLError as e:
         print("API Request Failed:", str(e))
         return {
             "statusCode": 500,
