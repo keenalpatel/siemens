@@ -3,6 +3,7 @@ pipeline {
     environment {
         AWS_REGION = "ap-south-1"
         S3_BUCKET = "467.devops.candidate.exam"
+        API_ENDPOINT = "https://api-endpoint-url" // Replace with actual endpoint
     }
     stages {
         stage("TF Init") {
@@ -40,21 +41,41 @@ pipeline {
                 '''
             }
         }
+        stage("Update Lambda Config") {
+            steps {
+                sh '''
+                aws lambda update-function-configuration \
+                --function-name devops-exam-lambda \
+                --region $AWS_REGION \
+                --environment "Variables={API_ENDPOINT=$API_ENDPOINT,CANDIDATE_NAME=$NAME,CANDIDATE_EMAIL=$EMAIL,SUBNET_ID=$SUBNET_ID}"
+                '''
+            }
+        }
         stage("Invoke Lambda") {
             steps {
                 script {
-                    // Fetch subnet ID from Terraform output
                     def subnetId = sh(script: 'terraform output -raw subnet_id', returnStdout: true).trim()
-
-                    // Invoke Lambda with dynamic subnet ID
-                    def lambdaResponse = sh(script: """
-                        aws lambda invoke --function-name devops-exam-lambda \
-                        --payload '{"subnet_id": "${subnetId}"}' \
-                        --log-type Tail /dev/stdout | jq -r '.LogResult' | base64 --decode
-                    """, returnStdout: true).trim()
-
-                    // Log the Lambda response
-                    echo "Lambda Response: ${lambdaResponse}"
+                    def payload = "{\"subnet_id\": \"${subnetId}\"}"
+                    
+                    def response = sh(
+                        script: """
+                        aws lambda invoke \
+                        --function-name devops-exam-lambda \
+                        --payload '${payload}' \
+                        --region $AWS_REGION \
+                        --log-type Tail \
+                        response.json
+                        
+                        echo "Lambda Response:"
+                        cat response.json
+                        
+                        echo "Lambda Logs:"
+                        jq -r '.LogResult' response.json | base64 -d || true
+                        """,
+                        returnStdout: true
+                    )
+                    
+                    echo "Complete Lambda Output: ${response}"
                 }
             }
         }
