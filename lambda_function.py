@@ -4,6 +4,12 @@ import requests
 
 def lambda_handler(event, context):
 
+    payload = {
+        "subnet_id": os.environ["SUBNET_ID"],
+        "name": os.environ["NAME"],
+        "email": os.environ["EMAIL"]
+    }
+
     # Headers for the API request
     headers = {
         "X-Siemens-Auth": "test"
