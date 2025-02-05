@@ -1,42 +1,11 @@
-# Fetch the existing VPC
-data "aws_vpc" "vpc" {
-  filter {
-    name   = "tag:Name"
-    values = ["my-vpc"]  # Change to your VPC Name
-  }
-}
-
-# Fetch the public subnet for NAT Gateway
-data "aws_subnet" "public_subnet" {
-  filter {
-    name   = "tag:Name"
-    values = ["public-subnet"]  # Change to your public subnet name
-  }
-}
-
 # Create a private subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id            = data.aws_vpc.vpc.id
-  cidr_block        = cidrsubnet(data.aws_vpc.vpc.cidr_block, 8, 10) # Ensure valid CIDR
-  availability_zone = "ap-south-1a"  # Change as per your region
+  cidr_block        = cidrsubnet(data.aws_vpc.vpc.cidr_block, 8, 10) # Dynamically calculate CIDR block
+  availability_zone = "ap-south-1a" # Change this if needed
 
   tags = {
     Name = "private-subnet"
-  }
-}
-
-# Create an Elastic IP for NAT Gateway
-resource "aws_eip" "nat_eip" {
-  domain = "vpc"
-}
-
-# Create a NAT Gateway for private subnet
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat_eip.id
-  subnet_id     = data.aws_subnet.public_subnet.id
-
-  tags = {
-    Name = "nat-gateway"
   }
 }
 
@@ -46,7 +15,7 @@ resource "aws_route_table" "private_route_table" {
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
+    nat_gateway_id = data.aws_nat_gateway.nat.id
   }
 
   tags = {
@@ -64,7 +33,6 @@ resource "aws_route_table_association" "private_subnet_association" {
 resource "aws_security_group" "lambda_sg" {
   vpc_id = data.aws_vpc.vpc.id
 
-  # Allow outbound traffic
   egress {
     from_port   = 0
     to_port     = 0
@@ -75,11 +43,6 @@ resource "aws_security_group" "lambda_sg" {
   tags = {
     Name = "lambda-security-group"
   }
-}
-
-# Fetch the IAM Role for Lambda Execution
-data "aws_iam_role" "lambda" {
-  name = "lambda-execution-role" # Change to your IAM Role name
 }
 
 # Create the Lambda function
@@ -100,13 +63,13 @@ resource "aws_lambda_function" "lambda" {
   environment {
     variables = {
       SUBNET_ID = aws_subnet.private_subnet.id
-      NAME      = "Keenal Vishnubhai Patel"
-      EMAIL     = "keenalpatel143@gmail.com"
+      NAME      = "Keenal Vishnubhai Patel" # Replace with your full name
+      EMAIL     = "keenalpatel143@gmail.com" # Replace with your email
     }
   }
 }
 
-# Output the private subnet ID
+# Output the subnet ID for use in the Jenkins pipeline
 output "subnet_id" {
   value = aws_subnet.private_subnet.id
 }
