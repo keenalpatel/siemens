@@ -1,55 +1,36 @@
-import urllib.request
-import json
 import os
-import logging
-
-# Configure logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+import json
+import requests
 
 def lambda_handler(event, context):
-    # Get environment variables
-    required_env_vars = ['API_ENDPOINT', 'SUBNET_ID', 'CANDIDATE_NAME', 'CANDIDATE_EMAIL']
-    env_vars = {}
-    
-    # Validate environment variables
-    for var in required_env_vars:
-        if var not in os.environ:
-            error_msg = f"Missing required environment variable: {var}"
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-        env_vars[var] = os.environ[var]
-    
-    # Log input event
-    logger.info(f"Received event: {json.dumps(event)}")
-    
+    # Payload for the API request
     payload = {
-        "subnet_id": env_vars['SUBNET_ID'],
-        "name": env_vars['CANDIDATE_NAME'],
-        "email": env_vars['CANDIDATE_EMAIL']
+        "subnet_id": os.environ["SUBNET_ID"],
+        "name": os.environ["NAME"],
+        "email": os.environ["EMAIL"]
     }
-    
+
+    # Headers for the API request
     headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
         "X-Siemens-Auth": "test"
     }
-    
+
     try:
-        data = json.dumps(payload).encode("utf-8")
-        logger.info(f"Sending request to {env_vars['API_ENDPOINT']} with payload: {payload}")
-        
-        req = urllib.request.Request(env_vars['API_ENDPOINT'], data, headers)
-        with urllib.request.urlopen(req) as f:
-            response = f.read().decode()
-            logger.info(f"Received response: {response}")
-            return {
-                "statusCode": 200,
-                "body": response
-            }
-    except Exception as e:
-        logger.error(f"Error occurred: {str(e)}")
+        # Invoke the remote API
+        response = requests.post(
+            "https://bc1yy8dzsg.execute-api.eu-west-1.amazonaws.com/v1/data",
+            headers=headers,
+            json=payload
+        )
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        print("API Response:", response.text)
+        return {
+            "statusCode": response.status_code,
+            "body": response.text
+        }
+    except requests.exceptions.RequestException as e:
+        print("API Request Failed:", str(e))
         return {
             "statusCode": 500,
-            "body": str(e)
+            "body": json.dumps({"error": str(e)})
         }
