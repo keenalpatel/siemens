@@ -3,7 +3,6 @@ pipeline {
     environment {
         AWS_REGION = "ap-south-1"
         S3_BUCKET = "467.devops.candidate.exam"
-        API_ENDPOINT = "https://api-endpoint-url" // Replace with actual endpoint
     }
     stages {
         stage("TF Init") {
@@ -37,47 +36,25 @@ pipeline {
                 aws lambda update-function-code \
                 --function-name devops-exam-lambda \
                 --zip-file fileb://lambda.zip \
-                --region ${AWS_REGION}
+                --region $AWS_REGION
                 '''
-            }
-        }
-        stage("Update Lambda Config") {
-            steps {
-                script {
-                    def envVars = [
-                        "API_ENDPOINT=${API_ENDPOINT}",
-                        "CANDIDATE_NAME=${NAME}",
-                        "CANDIDATE_EMAIL=${EMAIL}",
-                        "SUBNET_ID=${SUBNET_ID}"
-                    ].join(',')
-                    
-                    sh """
-                    aws lambda update-function-configuration \
-                    --function-name devops-exam-lambda \
-                    --region ${AWS_REGION} \
-                    --environment "Variables={${envVars}}"
-                    """
-                }
             }
         }
         stage("Invoke Lambda") {
             steps {
                 script {
+                    // Fetch subnet ID from Terraform output
                     def subnetId = sh(script: 'terraform output -raw subnet_id', returnStdout: true).trim()
-                    
-                    sh """
-                    aws lambda wait function-updated --function-name devops-exam-lambda --region ${AWS_REGION}
-                    
-                    aws lambda invoke \
-                    --function-name devops-exam-lambda \
-                    --payload '{"subnet_id": "${subnetId}"}' \
-                    --region ${AWS_REGION} \
-                    --cli-binary-format raw-in-base64-out \
-                    response.json
-                    
-                    echo "Lambda Response:"
-                    cat response.json
-                    """
+
+                    // Invoke Lambda with dynamic subnet ID
+                    def lambdaResponse = sh(script: """
+                        aws lambda invoke --function-name devops-exam-lambda \
+                        --payload '{"subnet_id": "${subnetId}"}' \
+                        --log-type Tail /dev/stdout | jq -r '.LogResult' | base64 --decode
+                    """, returnStdout: true).trim()
+
+                    // Log the Lambda response
+                    echo "Lambda Response: ${lambdaResponse}"
                 }
             }
         }
