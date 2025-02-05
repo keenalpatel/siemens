@@ -1,36 +1,31 @@
-import os
+import urllib.request
 import json
-import requests
+import os
 
-def lambda_handler(event, context):
-    # Payload for the API request
+def handler(event, context):
+    API_ENDPOINT  = os.environ['API_ENDPOINT']
+    SUBNET_ID     = os.environ['SUBNET_ID']
+    CANDIDATE_NAME = os.environ['CANDIDATE_NAME']
+    CANDIDATE_EMAIL = os.environ['CANDIDATE_EMAIL']
+
     payload = {
-        "subnet_id": os.environ["SUBNET_ID"],
-        "name": os.environ["NAME"],
-        "email": os.environ["EMAIL"]
+        "subnet_id": SUBNET_ID,
+        "name": CANDIDATE_NAME,
+        "email": CANDIDATE_EMAIL
     }
 
-    # Headers for the API request
     headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
         "X-Siemens-Auth": "test"
     }
 
+    data = json.dumps(payload).encode("utf-8")
+
     try:
-        # Invoke the remote API
-        response = requests.post(
-            "https://bc1yy8dzsg.execute-api.eu-west-1.amazonaws.com/v1/data",
-            headers=headers,
-            json=payload
-        )
-        response.raise_for_status()  # Raise an exception for HTTP errors
-        print("API Response:", response.text)
-        return {
-            "statusCode": response.status_code,
-            "body": response.text
-        }
-    except requests.exceptions.RequestException as e:
-        print("API Request Failed:", str(e))
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
-        }
+        req = urllib.request.Request(API_ENDPOINT, data, headers)
+        with urllib.request.urlopen(req) as f:
+            res = f.read()
+            return res.decode()
+    except Exception as e:
+        return e
