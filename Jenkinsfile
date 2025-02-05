@@ -37,45 +37,47 @@ pipeline {
                 aws lambda update-function-code \
                 --function-name devops-exam-lambda \
                 --zip-file fileb://lambda.zip \
-                --region $AWS_REGION
+                --region ${AWS_REGION}
                 '''
             }
         }
         stage("Update Lambda Config") {
             steps {
-                sh '''
-                aws lambda update-function-configuration \
-                --function-name devops-exam-lambda \
-                --region $AWS_REGION \
-                --environment "Variables={API_ENDPOINT=$API_ENDPOINT,CANDIDATE_NAME=$NAME,CANDIDATE_EMAIL=$EMAIL,SUBNET_ID=$SUBNET_ID}"
-                '''
+                script {
+                    def envVars = [
+                        "API_ENDPOINT=${API_ENDPOINT}",
+                        "CANDIDATE_NAME=${NAME}",
+                        "CANDIDATE_EMAIL=${EMAIL}",
+                        "SUBNET_ID=${SUBNET_ID}"
+                    ].join(',')
+                    
+                    sh """
+                    aws lambda update-function-configuration \
+                    --function-name devops-exam-lambda \
+                    --region ${AWS_REGION} \
+                    --environment "Variables={${envVars}}"
+                    """
+                }
             }
         }
         stage("Invoke Lambda") {
             steps {
                 script {
                     def subnetId = sh(script: 'terraform output -raw subnet_id', returnStdout: true).trim()
-                    def payload = "{\"subnet_id\": \"${subnetId}\"}"
                     
-                    def response = sh(
-                        script: """
-                        aws lambda invoke \
-                        --function-name devops-exam-lambda \
-                        --payload '${payload}' \
-                        --region $AWS_REGION \
-                        --log-type Tail \
-                        response.json
-                        
-                        echo "Lambda Response:"
-                        cat response.json
-                        
-                        echo "Lambda Logs:"
-                        jq -r '.LogResult' response.json | base64 -d || true
-                        """,
-                        returnStdout: true
-                    )
+                    sh """
+                    aws lambda wait function-updated --function-name devops-exam-lambda --region ${AWS_REGION}
                     
-                    echo "Complete Lambda Output: ${response}"
+                    aws lambda invoke \
+                    --function-name devops-exam-lambda \
+                    --payload '{"subnet_id": "${subnetId}"}' \
+                    --region ${AWS_REGION} \
+                    --cli-binary-format raw-in-base64-out \
+                    response.json
+                    
+                    echo "Lambda Response:"
+                    cat response.json
+                    """
                 }
             }
         }
