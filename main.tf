@@ -1,7 +1,7 @@
 # Create a private subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id            = data.aws_vpc.vpc.id
-  cidr_block        = cidrsubnet(data.aws_vpc.vpc.cidr_block, 8, 4) # Dynamically calculate CIDR block
+  cidr_block        = cidrsubnet(data.aws_vpc.vpc.cidr_block, 8, 10) # Dynamically calculate CIDR block
   availability_zone = "ap-south-1a" # Change this if needed
 
   tags = {
