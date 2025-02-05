@@ -1,3 +1,16 @@
+# Declare input variables
+variable "NAME" {
+  description = "Full name"
+  type        = string
+  default     = "Keenal Vishnubhai Patel"
+}
+
+variable "EMAIL" {
+  description = "Email address"
+  type        = string
+  default     = "keenalpatel143@gmail.com"
+}
+
 # Create a private subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id            = data.aws_vpc.vpc.id
@@ -63,8 +76,8 @@ resource "aws_lambda_function" "lambda" {
   environment {
     variables = {
       SUBNET_ID = aws_subnet.private_subnet.id
-      NAME      = "Keenal Vishnubhai Patel" # Replace with your full name
-      EMAIL     = "keenalpatel143@gmail.com" # Replace with your email
+      NAME      = var.NAME
+      EMAIL     = var.EMAIL
     }
   }
 }
@@ -73,6 +86,7 @@ resource "aws_lambda_function" "lambda" {
 output "subnet_id" {
   value = aws_subnet.private_subnet.id
 }
+
 output "name" {
   value = var.NAME
 }
