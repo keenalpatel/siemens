@@ -73,3 +73,10 @@ resource "aws_lambda_function" "lambda" {
 output "subnet_id" {
   value = aws_subnet.private_subnet.id
 }
+output "name" {
+  value = var.NAME
+}
+
+output "email" {
+  value = var.EMAIL
+}
