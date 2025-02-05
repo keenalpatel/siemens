@@ -36,7 +36,7 @@ pipeline {
                     // Invoke Lambda with dynamic subnet ID
                     def lambdaResponse = sh(script: """
                         aws lambda invoke --function-name devops-exam-lambda \
-                        --log-type Tail --cli-binary-format raw-in-base64-out /dev/stdout | jq
+                        --log-type Tail output.json | jq -r '.LogResult' | base64 --decode
                     """, returnStdout: true).trim()
 
                     // Log the Lambda response
