@@ -3,12 +3,6 @@ import json
 import requests
 
 def lambda_handler(event, context):
-    # Payload for the API request
-    payload = {
-        "subnet_id": os.environ["SUBNET_ID"],
-        "name": os.environ["NAME"],
-        "email": os.environ["EMAIL"]
-    }
 
     # Headers for the API request
     headers = {
