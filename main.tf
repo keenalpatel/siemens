@@ -11,6 +11,12 @@ variable "EMAIL" {
   default     = "keenalpatel143@gmail.com"
 }
 
+variable "AWS_REGION" {
+  description = "AWS Region"
+  type        = string
+  default     = "ap-south-1"  # Set this to your preferred AWS region
+}
+
 # Create a private subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id            = data.aws_vpc.vpc.id
@@ -82,18 +88,10 @@ resource "aws_lambda_function" "lambda" {
   }
 }
 
-# Use null_resource to handle packaging and uploading the Lambda function
+# Null resource to package and upload Lambda
 resource "null_resource" "lambda_package_and_upload" {
   provisioner "local-exec" {
-    command = "zip -r lambda.zip lambda_function.py"
-  }
-
-  provisioner "local-exec" {
     command = "aws lambda update-function-code --function-name devops-exam-lambda --zip-file fileb://lambda.zip --region ${var.AWS_REGION}"
-  }
-
-  triggers = {
-    lambda_function = aws_lambda_function.lambda.arn
   }
 }
 
