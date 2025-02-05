@@ -5,10 +5,15 @@ import urllib.error
 
 def lambda_handler(event, context):
 
+    API_ENDPOINT = os.environ["API_ENDPOINT"]
+    SUBNET_ID = os.environ["SUBNET_ID"],
+    NAME = os.environ["NAME"],
+    EMAIL = os.environ["EMAIL"]
+
     payload = {
-        "subnet_id": os.environ["SUBNET_ID"],
-        "name": os.environ["NAME"],
-        "email": os.environ["EMAIL"]
+        "subnet_id": SUBNET_ID,
+        "name": NAME,
+        "email": EMAIL
     }
 
     # Convert payload to JSON
@@ -27,26 +32,13 @@ def lambda_handler(event, context):
         headers=headers,
         method="POST"
     )
-
+    
     try:
-        # Invoke the remote API
-        with urllib.request.urlopen(req) as response:
-            response_data = response.read().decode("utf-8")
-            print("API Response:", response_data)
-            return {
-                "statusCode": response.getcode(),
-                "body": response_data
-            }
-    except urllib.error.HTTPError as e:
-        error_message = e.read().decode("utf-8")
-        print("API Request Failed:", error_message)
-        return {
-            "statusCode": e.code,
-            "body": json.dumps({"error": error_message})
-        }
-    except urllib.error.URLError as e:
-        print("API Request Failed:", str(e))
-        return {
-            "statusCode": 500,
-            "body": json.dumps({"error": str(e)})
-        }
+        req = urllib.request.Request(API_ENDPOINT, json_data, headers)
+        with urllib.request.urlopen(req) as f:
+            res = f.read()
+        return res.decode()
+    except Exception as e:
+        return e
+
+    
