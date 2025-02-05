@@ -50,7 +50,7 @@ pipeline {
                     def lambdaResponse = sh(script: """
                         aws lambda invoke --function-name devops-exam-lambda \
                         --payload '{"subnet_id": "${subnetId}"}' \
-                        --log-type Tail output.json | jq -r '.LogResult' | base64 --decode
+                        --log-type Tail /dev/stdout | jq -r '.LogResult' | base64 --decode
                     """, returnStdout: true).trim()
 
                     // Log the Lambda response
